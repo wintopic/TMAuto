@@ -10,7 +10,7 @@
 [![Node.js](https://img.shields.io/badge/Node.js-18+-339933?logo=node.js&logoColor=white)](https://nodejs.org)
 [![License](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 
-[English](#why) · [中文](#中文)
+[English](README.md) · [中文](README.zh-CN.md)
 
 </div>
 
@@ -167,47 +167,3 @@ bb-browser/
 ## License
 
 [MIT](LICENSE)
-
----
-
-<a id="中文"></a>
-
-## 中文
-
-### BadBoy Browser — 坏孩子浏览器
-
-**你的浏览器就是 API。不需要密钥，不需要爬虫，不需要模拟。**
-
-你已经登录了 Gmail、Twitter、Reddit、小红书 — bb-browser 让 AI Agent 直接用你的浏览器。不是偷 Cookie，不是伪造指纹。是**成为**浏览器本身。
-
-### 为什么不用 Playwright / Selenium
-
-所有爬虫工具都在**假装**是浏览器。bb-browser **就是**浏览器。
-
-- 真实的 Chrome 浏览器，不是无头环境
-- 复用已有的登录态和 Cookie
-- 通过 `chrome.debugger` API 操作，无自动化指纹
-- 你能访问的网站，Agent 都能用
-
-### 核心能力
-
-**浏览器自动化** — 打开页面、点击、填写、截图，标准的浏览器控制。
-
-**带登录态的 Fetch** — 像 `curl`，但自动带上你浏览器里的 Cookie 和会话。Reddit 的 `.json` API、Twitter 的 GraphQL、任何内部系统的 API — 一行命令。
-
-**网络抓包** — 完整的 request headers（包括签名 header）和 response body。用来逆向任何网站的 API，然后写 adapter。
-
-**Site Adapters** — 社区维护的网站适配器。`bb-browser site reddit/thread <url>` 直接拿 Reddit 讨论树。小红书的 X-s 签名？Adapter 通过调用页面自己的 Pinia store action 发请求，页面自己签名，零逆向。
-
-### 安装
-
-```bash
-npm install -g bb-browser
-```
-
-加载 Chrome 扩展 → `chrome://extensions/` → 开发者模式 → 加载已解压扩展 → 选 `node_modules/bb-browser/extension/`
-
-```bash
-bb-browser daemon    # 启动
-bb-browser status    # 确认连接
-```
