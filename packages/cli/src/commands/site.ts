@@ -413,12 +413,14 @@ async function siteRun(
       ? `Please log in to https://${site.domain} in your browser first, then retry.`
       : undefined;
     const hint = loginHint || errObj.hint;
+    const reportHint = `If this is an adapter bug, report it: gh issue create --repo epiral/bb-sites --title "[${name}] <description>"`;
 
     if (options.json) {
-      console.log(JSON.stringify({ id: evalReq.id, success: false, error: errObj.error, hint }));
+      console.log(JSON.stringify({ id: evalReq.id, success: false, error: errObj.error, hint, reportHint }));
     } else {
       console.error(`[error] site ${name}: ${errObj.error}`);
       if (hint) console.error(`  Hint: ${hint}`);
+      console.error(`  Report: gh issue create --repo epiral/bb-sites --title "[${name}] ..."`);
     }
     process.exit(1);
   }
@@ -457,7 +459,12 @@ export async function siteCommand(
   bb-browser site list
   bb-browser site reddit/thread https://www.reddit.com/r/LocalLLaMA/comments/...
   bb-browser site twitter/user yan5xu
-  bb-browser site search reddit`);
+  bb-browser site search reddit
+
+Adapter 结果不符合预期？报告问题：
+  gh issue create --repo epiral/bb-sites --title "[adapter-name] 描述"
+  或: https://github.com/epiral/bb-sites/issues
+贡献新 adapter: https://github.com/epiral/bb-sites`);
     return;
   }
 
