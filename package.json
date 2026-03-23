@@ -1,11 +1,13 @@
 {
   "name": "bb-browser",
-  "version": "0.10.1",
-  "description": "Your browser is the API. CLI + MCP server for AI agents to control Chrome with your login state.",
+  "version": "0.8.3",
+  "description": "让 AI 直接使用你已经登录的真实浏览器。通过 CLI、MCP、扩展和 daemon 控制 Chrome。",
   "type": "module",
   "bin": {
     "bb-browser": "./dist/cli.js",
-    "bb-browser-mcp": "./dist/mcp.js"
+    "bb-browser-daemon": "./dist/daemon.js",
+    "bb-browser-mcp": "./dist/mcp.js",
+    "bb-browser-userscript-mcp": "./dist/userscript-mcp.js"
   },
   "main": "./dist/cli.js",
   "files": [
@@ -15,13 +17,14 @@
     "LICENSE"
   ],
   "scripts": {
-    "build": "turbo run build && pnpm build:release",
-    "build:release": "tsup && pnpm build:extension",
-    "build:extension": "rm -rf extension && cp -r packages/extension/dist extension",
+    "build": "corepack pnpm --filter @bb-browser/shared build && corepack pnpm --filter @bb-browser/cli build && corepack pnpm --filter @bb-browser/daemon build && corepack pnpm --filter @bb-browser/mcp build && corepack pnpm --filter @bb-browser/userscript-mcp build && corepack pnpm --filter @bb-browser/extension build && corepack pnpm build:release",
+    "build:release": "corepack pnpm exec tsup && corepack pnpm build:extension",
+    "build:extension": "node -e \"const fs=require('node:fs'); fs.rmSync('extension',{recursive:true,force:true}); fs.cpSync('packages/extension/dist','extension',{recursive:true});\"",
     "dev": "turbo run dev",
-    "test": "turbo run test",
-    "lint": "turbo run lint",
-    "clean": "turbo run clean && rm -rf node_modules dist extension",
+    "test": "corepack pnpm --filter @bb-browser/shared test && corepack pnpm --filter @bb-browser/userscript-mcp test",
+    "lint": "corepack pnpm exec tsc --noEmit -p packages/shared/tsconfig.json && corepack pnpm exec tsc --noEmit -p packages/cli/tsconfig.json && corepack pnpm exec tsc --noEmit -p packages/daemon/tsconfig.json && corepack pnpm exec tsc --noEmit -p packages/mcp/tsconfig.json && corepack pnpm exec tsc --noEmit -p packages/userscript-mcp/tsconfig.json && corepack pnpm exec tsc --noEmit -p packages/extension/tsconfig.json",
+    "verify": "corepack pnpm test && corepack pnpm build && npm pack --dry-run",
+    "clean": "node -e \"const fs=require('node:fs'); for (const target of ['node_modules','dist','extension']) fs.rmSync(target,{recursive:true,force:true});\"",
     "prepublishOnly": "pnpm build:release"
   },
   "keywords": [
@@ -37,36 +40,28 @@
     "cdp",
     "mcp"
   ],
-  "author": "",
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/epiral/bb-browser.git"
+    "url": "git+https://github.com/wintopic/TMAuto.git"
   },
   "bugs": {
-    "url": "https://github.com/epiral/bb-browser/issues"
+    "url": "https://github.com/wintopic/TMAuto/issues"
   },
-  "homepage": "https://github.com/epiral/bb-browser#readme",
+  "homepage": "https://github.com/wintopic/TMAuto#readme",
   "engines": {
     "node": ">=18.0.0"
   },
   "packageManager": "pnpm@9.15.0",
   "dependencies": {
-    "@bufbuild/protobuf": "^2.11.0",
-    "@connectrpc/connect": "^2.1.1",
-    "@connectrpc/connect-node": "^2.1.1",
+    "ws": "^8.18.0",
     "@modelcontextprotocol/sdk": "^1.12.1",
     "ajv": "^8.17.1",
-    "ajv-formats": "^3.0.1",
-    "ws": "^8.18.0"
+    "ajv-formats": "^3.0.1"
   },
   "devDependencies": {
-    "@eslint/js": "^9.23.0",
-    "eslint": "^9.23.0",
-    "globals": "^16.0.0",
     "tsup": "^8.0.0",
     "turbo": "^2.3.0",
-    "typescript": "^5.7.0",
-    "typescript-eslint": "^8.29.0"
+    "typescript": "^5.7.0"
   }
 }

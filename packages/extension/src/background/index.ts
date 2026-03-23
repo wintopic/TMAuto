@@ -10,6 +10,7 @@
 
 import { SSEClient } from './sse-client';
 import { handleCommand } from './command-handler';
+import './userscript-service';
 
 // 保活 Alarm 名称
 const KEEPALIVE_ALARM = 'bb-browser-keepalive';

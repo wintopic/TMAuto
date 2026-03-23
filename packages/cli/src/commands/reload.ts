@@ -15,6 +15,12 @@ export interface ReloadOptions {
 
 const EXTENSION_NAME = "bb-browser";
 
+interface DebugTarget {
+  type?: string;
+  url?: string;
+  webSocketDebuggerUrl?: string;
+}
+
 export async function reloadCommand(
   options: ReloadOptions = {}
 ): Promise<void> {
@@ -26,11 +32,12 @@ export async function reloadCommand(
     if (!listRes.ok) {
       throw new Error(`CDP 未启用。请用 --remote-debugging-port=${port} 启动 Chrome`);
     }
-    const list = await listRes.json();
+    const list = await listRes.json() as DebugTarget[];
     
     // 找到 chrome://extensions 页面
-    const extPage = list.find((t: any) => 
+    const extPage = list.find((t) => 
       t.type === "page" && 
+      typeof t.url === "string" &&
       t.url.includes("chrome://extensions")
     );
     
@@ -40,6 +47,11 @@ export async function reloadCommand(
     
     // 连接到 chrome://extensions 页面
     const result = await new Promise<{ success: boolean; message: string; extensionId?: string }>((resolve, reject) => {
+      if (!extPage.webSocketDebuggerUrl) {
+        reject(new Error("chrome://extensions 页面缺少 webSocketDebuggerUrl"));
+        return;
+      }
+
       const ws = new WebSocket(extPage.webSocketDebuggerUrl);
       let resolved = false;
       
@@ -90,7 +102,7 @@ export async function reloadCommand(
         }));
       });
       
-      ws.on("message", (data) => {
+      ws.on("message", (data: any) => {
         const msg = JSON.parse(data.toString());
         
         if (msg.id === 1) {
@@ -113,7 +125,7 @@ export async function reloadCommand(
         }
       });
       
-      ws.on("error", (err) => {
+      ws.on("error", (err: Error) => {
         clearTimeout(timeout);
         if (!resolved) {
           resolved = true;

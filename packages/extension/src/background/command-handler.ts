@@ -7,11 +7,13 @@
 
 import { sendResult, CommandResult } from './api-client';
 import { CommandEvent } from './sse-client';
+import type { UserscriptMetadata, UserscriptProjectPayload } from '@bb-browser/shared';
 import * as cdp from './cdp-service';
 import * as cdpDom from './cdp-dom-service';
 import { cleanupTab as cleanupCdpTab } from './cdp-dom-service';
 import { cleanupTab as cleanupDomTab } from './dom-service';
 import * as traceService from './trace-service';
+import * as userscriptService from './userscript-service';
 
 // 初始化 CDP 事件监听器
 cdp.initEventListeners();
@@ -171,6 +173,38 @@ export async function handleCommand(command: CommandEvent): Promise<void> {
 
       case 'history':
         result = await handleHistory(command);
+        break;
+
+      case 'capabilities':
+        result = await handleCapabilities(command);
+        break;
+
+      case 'cdp_call':
+        result = await handleCdpCall(command);
+        break;
+
+      case 'userscript_install':
+        result = await handleUserscriptInstall(command);
+        break;
+
+      case 'userscript_update':
+        result = await handleUserscriptUpdate(command);
+        break;
+
+      case 'userscript_uninstall':
+        result = await handleUserscriptUninstall(command);
+        break;
+
+      case 'userscript_logs':
+        result = await handleUserscriptLogs(command);
+        break;
+
+      case 'userscript_storage':
+        result = await handleUserscriptStorage(command);
+        break;
+
+      case 'userscript_publish':
+        result = await handleUserscriptPublish(command);
         break;
 
       default:
@@ -2217,6 +2251,289 @@ async function handleHistory(command: CommandEvent): Promise<CommandResult> {
       id: command.id,
       success: false,
       error: `History command failed: ${error instanceof Error ? error.message : String(error)}`,
+    };
+  }
+}
+
+function parseUserscriptPayload(command: CommandEvent): UserscriptProjectPayload {
+  const userscript = (command.userscript || {}) as {
+    projectId?: string;
+    scriptId?: string;
+    version?: string;
+    code?: string;
+    metadata?: UserscriptMetadata;
+    enabled?: boolean;
+  };
+
+  if (!userscript.projectId) {
+    throw new Error('Missing userscript.projectId');
+  }
+
+  if (!userscript.scriptId) {
+    throw new Error('Missing userscript.scriptId');
+  }
+
+  if (!userscript.code) {
+    throw new Error('Missing userscript.code');
+  }
+
+  if (!userscript.metadata) {
+    throw new Error('Missing userscript.metadata');
+  }
+
+  return {
+    projectId: userscript.projectId,
+    scriptId: userscript.scriptId,
+    version: userscript.version || userscript.metadata.version,
+    code: userscript.code,
+    metadata: userscript.metadata,
+    enabled: userscript.enabled,
+  };
+}
+
+async function handleCapabilities(_command: CommandEvent): Promise<CommandResult> {
+  return {
+    id: _command.id,
+    success: true,
+    data: {
+      capabilities: userscriptService.getBrowserCapabilities(true),
+    },
+  };
+}
+
+async function handleCdpCall(command: CommandEvent): Promise<CommandResult> {
+  const method = command.cdpMethod as string | undefined;
+  const params = command.cdpParams as Record<string, unknown> | undefined;
+
+  if (!method) {
+    return {
+      id: command.id,
+      success: false,
+      error: 'Missing cdpMethod parameter',
+    };
+  }
+
+  const activeTab = await resolveTab(command);
+  if (!activeTab.id) {
+    return {
+      id: command.id,
+      success: false,
+      error: 'No active tab found',
+    };
+  }
+
+  try {
+    const cdpResult = await cdp.sendCommand(activeTab.id, method, params);
+    return {
+      id: command.id,
+      success: true,
+      data: {
+        cdpResult,
+      },
+    };
+  } catch (error) {
+    return {
+      id: command.id,
+      success: false,
+      error: `CDP call failed: ${error instanceof Error ? error.message : String(error)}`,
+    };
+  }
+}
+
+async function handleUserscriptInstall(command: CommandEvent): Promise<CommandResult> {
+  try {
+    const payload = parseUserscriptPayload(command);
+    const runtimeInfo = await userscriptService.installUserscript(
+      payload,
+      (command.userscript as { publishInfo?: Record<string, unknown> } | undefined)?.publishInfo
+    );
+
+    return {
+      id: command.id,
+      success: true,
+      data: {
+        userscript: runtimeInfo,
+        userscriptNetworkSummary: runtimeInfo.networkSummary,
+      },
+    };
+  } catch (error) {
+    return {
+      id: command.id,
+      success: false,
+      error: `Userscript install failed: ${error instanceof Error ? error.message : String(error)}`,
+    };
+  }
+}
+
+async function handleUserscriptUpdate(command: CommandEvent): Promise<CommandResult> {
+  try {
+    const payload = parseUserscriptPayload(command);
+    const runtimeInfo = await userscriptService.updateUserscript(
+      payload,
+      (command.userscript as { publishInfo?: Record<string, unknown> } | undefined)?.publishInfo
+    );
+
+    return {
+      id: command.id,
+      success: true,
+      data: {
+        userscript: runtimeInfo,
+        userscriptNetworkSummary: runtimeInfo.networkSummary,
+      },
+    };
+  } catch (error) {
+    return {
+      id: command.id,
+      success: false,
+      error: `Userscript update failed: ${error instanceof Error ? error.message : String(error)}`,
+    };
+  }
+}
+
+async function handleUserscriptUninstall(command: CommandEvent): Promise<CommandResult> {
+  const userscript = (command.userscript || {}) as {
+    scriptId?: string;
+    projectId?: string;
+    version?: string;
+  };
+
+  if (!userscript.scriptId) {
+    return {
+      id: command.id,
+      success: false,
+      error: 'Missing userscript.scriptId',
+    };
+  }
+
+  try {
+    await userscriptService.uninstallUserscript(userscript.scriptId);
+    return {
+      id: command.id,
+      success: true,
+      data: {
+        userscript: {
+          scriptId: userscript.scriptId,
+          projectId: userscript.projectId || userscript.scriptId,
+          version: userscript.version || '0.0.0',
+          enabled: false,
+          matches: [],
+          grants: [],
+        },
+      },
+    };
+  } catch (error) {
+    return {
+      id: command.id,
+      success: false,
+      error: `Userscript uninstall failed: ${error instanceof Error ? error.message : String(error)}`,
+    };
+  }
+}
+
+async function handleUserscriptLogs(command: CommandEvent): Promise<CommandResult> {
+  const userscript = (command.userscript || {}) as {
+    scriptId?: string;
+    logCursor?: number;
+    limit?: number;
+  };
+
+  if (!userscript.scriptId) {
+    return {
+      id: command.id,
+      success: false,
+      error: 'Missing userscript.scriptId',
+    };
+  }
+
+  try {
+    const result = userscriptService.getUserscriptLogs(
+      userscript.scriptId,
+      typeof userscript.logCursor === 'number' ? userscript.logCursor : 0,
+      typeof userscript.limit === 'number' ? userscript.limit : 100
+    );
+
+    return {
+      id: command.id,
+      success: true,
+      data: {
+        userscript: result.userscript,
+        userscriptLogs: result.logs,
+        userscriptNetworkSummary: result.userscript.networkSummary,
+      },
+    };
+  } catch (error) {
+    return {
+      id: command.id,
+      success: false,
+      error: `Userscript logs failed: ${error instanceof Error ? error.message : String(error)}`,
+    };
+  }
+}
+
+async function handleUserscriptStorage(command: CommandEvent): Promise<CommandResult> {
+  const userscript = (command.userscript || {}) as {
+    scriptId?: string;
+    storageKey?: string;
+  };
+
+  if (!userscript.scriptId) {
+    return {
+      id: command.id,
+      success: false,
+      error: 'Missing userscript.scriptId',
+    };
+  }
+
+  try {
+    const result = userscriptService.getUserscriptStorage(userscript.scriptId, userscript.storageKey);
+    return {
+      id: command.id,
+      success: true,
+      data: {
+        userscript: result.userscript,
+        userscriptStorage: result.storage,
+        userscriptNetworkSummary: result.userscript.networkSummary,
+      },
+    };
+  } catch (error) {
+    return {
+      id: command.id,
+      success: false,
+      error: `Userscript storage failed: ${error instanceof Error ? error.message : String(error)}`,
+    };
+  }
+}
+
+async function handleUserscriptPublish(command: CommandEvent): Promise<CommandResult> {
+  const userscript = (command.userscript || {}) as {
+    scriptId?: string;
+    publishInfo?: Record<string, unknown>;
+  };
+
+  if (!userscript.scriptId) {
+    return {
+      id: command.id,
+      success: false,
+      error: 'Missing userscript.scriptId',
+    };
+  }
+
+  try {
+    const result = userscriptService.publishUserscript(userscript.scriptId, userscript.publishInfo || {});
+    return {
+      id: command.id,
+      success: true,
+      data: {
+        userscript: result.userscript,
+        userscriptPublish: result.publish,
+        userscriptNetworkSummary: result.userscript.networkSummary,
+      },
+    };
+  } catch (error) {
+    return {
+      id: command.id,
+      success: false,
+      error: `Userscript publish failed: ${error instanceof Error ? error.message : String(error)}`,
     };
   }
 }

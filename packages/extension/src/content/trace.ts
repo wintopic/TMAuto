@@ -191,6 +191,36 @@ function getCssSelector(element: HTMLElement): string {
   return parts.join(' > ');
 }
 
+function getSelectorCandidates(element: HTMLElement): string[] {
+  const candidates = new Set<string>();
+
+  if (element.id) {
+    candidates.add(`#${element.id}`);
+  }
+
+  const testId = element.getAttribute('data-testid') || element.getAttribute('data-test') || element.getAttribute('data-qa');
+  if (testId) {
+    candidates.add(`[data-testid="${testId}"]`);
+  }
+
+  const name = element.getAttribute('name');
+  if (name) {
+    candidates.add(`${element.tagName.toLowerCase()}[name="${name}"]`);
+  }
+
+  const cssSelector = getCssSelector(element);
+  if (cssSelector) {
+    candidates.add(cssSelector);
+  }
+
+  const xpath = getXPath(element);
+  if (xpath) {
+    candidates.add(xpath);
+  }
+
+  return Array.from(candidates);
+}
+
 // ============================================================================
 // 事件处理器
 // ============================================================================
@@ -217,6 +247,7 @@ function handleClick(event: MouseEvent): void {
     ref: getHighlightIndex(target),
     xpath: getXPath(target),
     cssSelector: getCssSelector(target),
+    selectorCandidates: getSelectorCandidates(target),
     elementRole: semanticInfo.role,
     elementName: semanticInfo.name,
     elementTag: semanticInfo.tag,
@@ -262,6 +293,7 @@ function handleInput(event: Event): void {
       ref: getHighlightIndex(lastInputElement),
       xpath: getXPath(lastInputElement),
       cssSelector: getCssSelector(lastInputElement),
+      selectorCandidates: getSelectorCandidates(lastInputElement),
       value: isPassword ? '********' : lastInputValue,
       elementRole: semanticInfo.role,
       elementName: semanticInfo.name,
@@ -296,6 +328,7 @@ function handleChange(event: Event): void {
     ref: getHighlightIndex(target),
     xpath: getXPath(target),
     cssSelector: getCssSelector(target),
+    selectorCandidates: getSelectorCandidates(target),
     value: selectedOption?.text || target.value,
     elementRole: semanticInfo.role,
     elementName: semanticInfo.name,
@@ -344,6 +377,7 @@ function handleKeydown(event: KeyboardEvent): void {
     ref: target ? getHighlightIndex(target) : undefined,
     xpath: target ? getXPath(target) : undefined,
     cssSelector: target ? getCssSelector(target) : undefined,
+    selectorCandidates: target ? getSelectorCandidates(target) : undefined,
     key: keyToLog,
     elementRole: semanticInfo.role,
     elementName: semanticInfo.name,

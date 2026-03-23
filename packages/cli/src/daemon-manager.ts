@@ -6,7 +6,7 @@ import { fileURLToPath } from "node:url";
 import { dirname, resolve } from "node:path";
 import { existsSync } from "node:fs";
 import { ensureCdpConnection } from "./cdp-client.js";
-import { isManagedBrowserRunning } from "./cdp-discovery.js";
+import { discoverCdpPort } from "./cdp-discovery.js";
 
 export function getDaemonPath(): string {
   const currentFile = fileURLToPath(import.meta.url);
@@ -19,7 +19,7 @@ export function getDaemonPath(): string {
 }
 
 export async function isDaemonRunning(): Promise<boolean> {
-  return await isManagedBrowserRunning();
+  return (await discoverCdpPort()) !== null;
 }
 
 export async function stopDaemon(): Promise<boolean> {
@@ -41,3 +41,4 @@ export async function ensureDaemonRunning(): Promise<void> {
     throw error;
   }
 }
+

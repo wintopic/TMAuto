@@ -29,7 +29,7 @@ import { traceCommand } from "./commands/trace.js";
 import { fetchCommand } from "./commands/fetch.js";
 import { siteCommand } from "./commands/site.js";
 import { historyCommand } from "./commands/history.js";
-import { statusCommand } from "./commands/daemon.js";
+import { daemonCommand, statusCommand } from "./commands/daemon.js";
 import { setJqExpression } from "./client.js";
 
 declare const __BB_BROWSER_VERSION__: string;
@@ -55,6 +55,7 @@ bb-browser - AI Agent 浏览器自动化工具
   site list                    列出所有 adapter
   site info <name>             查看 adapter 用法（参数、返回值、示例）
   site <name> [args]           运行 adapter
+  daemon [options]             启动本地 daemon（也可用 bb-browser-daemon）
   site update                  更新社区 adapter 库
   guide                        如何把任何网站变成 adapter
   star                         ⭐ Star bb-browser on GitHub
@@ -237,6 +238,11 @@ async function main(): Promise<void> {
     return;
   }
 
+  if (parsed.command === "daemon") {
+    await daemonCommand(process.argv.slice(3));
+    return;
+  }
+
   if (parsed.flags.help || !parsed.command) {
     console.log(HELP_TEXT);
     return;
@@ -407,8 +413,6 @@ async function main(): Promise<void> {
         break;
       }
 
-      case "daemon":
-
       case "close": {
         await closeCommand({ json: parsed.flags.json, tabId: globalTabId });
         break;
@@ -477,11 +481,6 @@ async function main(): Promise<void> {
 
       case "tab": {
         await tabCommand(parsed.args, { json: parsed.flags.json });
-        break;
-      }
-
-      case "status": {
-        await statusCommand({ json: parsed.flags.json });
         break;
       }
 
@@ -612,6 +611,11 @@ async function main(): Promise<void> {
         break;
       }
 
+      case "status": {
+        await statusCommand({ json: parsed.flags.json });
+        break;
+      }
+
       case "star": {
         const { execSync } = await import("node:child_process");
         try {
@@ -621,7 +625,7 @@ async function main(): Promise<void> {
           console.error("  brew install gh && gh auth login");
           process.exit(1);
         }
-        const repos = ["epiral/bb-browser", "epiral/bb-sites"];
+        const repos = ["wintopic/TMAuto", "epiral/bb-sites"];
         for (const repo of repos) {
           try {
             execSync(`gh api user/starred/${repo} -X PUT`, { stdio: "pipe" });

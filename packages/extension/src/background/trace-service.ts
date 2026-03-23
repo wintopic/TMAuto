@@ -8,7 +8,11 @@
  * - 与 content script 通信
  */
 
-import type { TraceEvent, TraceStatus } from '@anthropic/bb-browser-shared';
+import type { ResponseData } from '@bb-browser/shared';
+import * as cdp from './cdp-service';
+
+type TraceEvent = NonNullable<ResponseData["traceEvents"]>[number];
+type TraceStatus = NonNullable<ResponseData["traceStatus"]>;
 
 // ============================================================================
 // 状态管理
@@ -23,6 +27,28 @@ let recordingTabId: number | null = null;
 /** 录制的事件列表 */
 let events: TraceEvent[] = [];
 
+function attachRelatedRequests(tabId: number, event: TraceEvent): TraceEvent {
+  const relatedRequests = cdp
+    .getNetworkRequests(tabId, undefined, false)
+    .filter((request) => request.timestamp >= event.timestamp - 2000)
+    .slice(-5)
+    .map((request) => ({
+      requestId: request.requestId,
+      url: request.url,
+      method: request.method,
+      status: request.response?.status,
+    }));
+
+  if (relatedRequests.length === 0) {
+    return event;
+  }
+
+  return {
+    ...event,
+    relatedRequests,
+  };
+}
+
 // ============================================================================
 // 公共 API
 // ============================================================================
@@ -36,6 +62,7 @@ export async function startRecording(tabId: number): Promise<void> {
   isRecording = true;
   recordingTabId = tabId;
   events = [];
+  await cdp.enableNetwork(tabId);
   
   // 添加页面导航事件作为第一个事件
   try {
@@ -105,8 +132,9 @@ export function getStatus(): TraceStatus {
 export function addEvent(event: TraceEvent): void {
   if (!isRecording) return;
   
-  console.log('[TraceService] Adding event:', event.type, event);
-  events.push(event);
+  const nextEvent = recordingTabId !== null ? attachRelatedRequests(recordingTabId, event) : event;
+  console.log('[TraceService] Adding event:', nextEvent.type, nextEvent);
+  events.push(nextEvent);
 }
 
 /**

@@ -2,7 +2,6 @@
  * console 命令 - 查看控制台消息
  */
 
-import { generateId } from "@bb-browser/shared";
 import { sendCommand } from "../client.js";
 
 interface ConsoleOptions {
@@ -13,7 +12,7 @@ interface ConsoleOptions {
 
 export async function consoleCommand(options: ConsoleOptions = {}): Promise<void> {
   const response = await sendCommand({
-    id: generateId(),
+    id: crypto.randomUUID(),
     action: "console",
     consoleCommand: options.clear ? "clear" : "get",
     tabId: options.tabId,

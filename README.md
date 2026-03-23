@@ -1,84 +1,110 @@
 <div align="center">
 
-# bb-browser
+# TMAuto
 
-### BadBoy Browser
+### 让 AI 直接使用你已经登录的真实浏览器
 
-**Your browser is the API. No keys. No bots. No scrapers.**
+**你的浏览器就是接口，不需要密钥，不需要爬虫，不需要模拟登录。**
 
-[![npm](https://img.shields.io/npm/v/bb-browser?color=CB3837&logo=npm&logoColor=white)](https://www.npmjs.com/package/bb-browser)
-[![Node.js](https://img.shields.io/badge/Node.js-18+-339933?logo=node.js&logoColor=white)](https://nodejs.org)
-[![License](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
-
-[English](README.md) · [中文](README.zh-CN.md)
+[![npm 版本](https://img.shields.io/npm/v/bb-browser?color=CB3837&logo=npm&logoColor=white)](https://www.npmjs.com/package/bb-browser)
+[![Node.js 版本](https://img.shields.io/badge/Node.js-18+-339933?logo=node.js&logoColor=white)](https://nodejs.org)
+[![许可证](https://img.shields.io/badge/许可证-MIT-blue.svg)](LICENSE)
 
 </div>
 
 ---
 
-You're already logged into Twitter, Reddit, YouTube, Zhihu, Bilibili, LinkedIn, GitHub — bb-browser lets AI agents **use that directly**.
+`TMAuto` 基于 `bb-browser` 整理，用一套本地 CLI、MCP 服务、本地后台服务和 Chrome 扩展，把“你已经登录好的真实浏览器”直接变成 AI Agent 可以调用的能力。
+
+你不需要额外申请网站 API，也不需要导出 Cookie，更不需要重新做一套自动化登录。只要网页能在你的浏览器里正常打开，AI 就可以在你的授权范围内直接使用它。
+
+## 它能做什么
+
+- 直接读取你已登录网站里的页面、接口和数据
+- 让 AI 在真实浏览器里点击、输入、截图、抓包、执行脚本
+- 通过 `site` 命令把网站包装成结构化数据接口
+- 通过 `userscript-mcp` 做油猴脚本的生成、调试、回归和导出
+
+例如：
 
 ```bash
-bb-browser site twitter/search "AI agent"       # search tweets
-bb-browser site zhihu/hot                        # trending on Zhihu
-bb-browser site arxiv/search "transformer"       # search papers
-bb-browser site eastmoney/stock "茅台"            # real-time stock quote
-bb-browser site boss/search "AI engineer"        # search jobs
-bb-browser site wikipedia/summary "Python"       # Wikipedia summary
-bb-browser site youtube/transcript VIDEO_ID      # full transcript
-bb-browser site stackoverflow/search "async"     # search SO questions
+bb-browser site twitter/search "AI agent"       # 搜索推文
+bb-browser site zhihu/hot                        # 查看知乎热榜
+bb-browser site arxiv/search "transformer"       # 搜索论文
+bb-browser site eastmoney/stock "茅台"            # 查看实时股票行情
+bb-browser site boss/search "AI 工程师"           # 搜索职位
+bb-browser site wikipedia/summary "Python"       # 获取词条摘要
+bb-browser site youtube/transcript VIDEO_ID      # 获取视频字幕全文
+bb-browser site stackoverflow/search "async"     # 搜索技术问答
 ```
 
-**103 commands across 36 platforms.** All using your real browser's login state. [Full list →](https://github.com/epiral/bb-sites)
+目前已经支持 **36 个平台、103 个命令**，完整站点能力列表见 [bb-sites](https://github.com/epiral/bb-sites)。
 
-## The idea
+## 它和常见方案有什么不同
 
-The internet was built for browsers. AI agents have been trying to access it through APIs — but 99% of websites don't offer one.
+传统自动化方案通常有两个问题：
 
-bb-browser flips this: **instead of forcing websites to provide machine interfaces, let machines use the human interface directly.** The adapter runs `eval` inside your browser tab, calls `fetch()` with your cookies, or invokes the page's own webpack modules. The website thinks it's you. Because it **is** you.
+- 无头浏览器没有你的真实登录态，很多网站要重新登录
+- 抓取方案容易被风控、验证码、接口签名和页面框架细节卡住
 
-| | Playwright / Selenium | Scraping libs | bb-browser |
-|---|---|---|---|
-| Browser | Headless, isolated | No browser | Your real Chrome |
-| Login state | None, must re-login | Cookie extraction | Already there |
-| Anti-bot | Detected easily | Cat-and-mouse | Invisible — it IS the user |
-| Complex auth | Can't replicate | Reverse engineer | Page handles it itself |
+`TMAuto` 的思路不是让网站额外开放接口，而是让 AI 直接使用人的界面和浏览器运行环境。网页看到的就是你自己，所以很多本来很难自动化的已登录场景会简单很多。
 
-## Quick Start
+| 对比项 | 常见自动化 / 爬取 | TMAuto |
+|---|---|---|
+| 浏览器环境 | 独立、无状态 | 你的真实浏览器 |
+| 登录态 | 需要重登或手动注入 | 直接复用 |
+| 风控识别 | 容易触发 | 更贴近真实用户 |
+| 网页内部能力 | 常要自己逆向 | 可以直接调用页面环境 |
 
-### Install
+## 安装
 
 ```bash
 npm install -g bb-browser
 ```
 
-### Use
+安装后可直接使用以下命令：
 
 ```bash
-bb-browser site update        # pull community adapters
-bb-browser site recommend     # see which adapters match your browsing habits
-bb-browser site zhihu/hot     # go
+bb-browser site update
+bb-browser site recommend
+bb-browser site zhihu/hot
 ```
 
-### OpenClaw (no extension needed)
+## 三种使用方式
 
-If you use [OpenClaw](https://openclaw.ai), bb-browser runs directly through OpenClaw's built-in browser — no Chrome extension or daemon required:
+### 1. 通过 OpenClaw 使用
+
+如果你在使用 [OpenClaw](https://openclaw.ai)，可以直接复用 OpenClaw 内置浏览器，不需要额外安装扩展和后台服务：
 
 ```bash
 bb-browser site reddit/hot --openclaw
 bb-browser site xueqiu/hot-stock 5 --openclaw --jq '.items[] | {name, changePercent}'
 ```
 
-Skill on ClawHub: [bb-browser-openclaw](https://clawhub.ai/yan5xu/bb-browser)
+### 2. 通过 Chrome 扩展和后台服务使用
 
-### Chrome Extension (standalone mode)
+如果你要在本地命令行、Claude Code、Codex、Cursor 等环境里使用：
 
-For use without OpenClaw (Claude Code MCP, standalone CLI):
+1. 从 [Releases](https://github.com/wintopic/TMAuto/releases/latest) 下载扩展压缩包
+2. 解压后打开 `chrome://extensions/`
+3. 打开“开发者模式”
+4. 点击“加载已解压的扩展程序”
+5. 选择解压后的扩展目录
+6. 启动本地后台服务
 
-1. Download from [Releases](https://github.com/epiral/bb-browser/releases/latest)
-2. Unzip → `chrome://extensions/` → Developer Mode → Load unpacked
+```bash
+bb-browser daemon
+```
 
-### MCP (Claude Code / Cursor)
+也可以直接启动独立入口：
+
+```bash
+bb-browser-daemon
+```
+
+### 3. 通过 MCP 接入 AI 工具
+
+如果你要把它接到支持 MCP 的工具里，可以使用下面的配置：
 
 ```json
 {
@@ -91,106 +117,138 @@ For use without OpenClaw (Claude Code MCP, standalone CLI):
 }
 ```
 
-## 36 platforms, 103 commands
+## 常用命令
 
-Community-driven via [bb-sites](https://github.com/epiral/bb-sites). One JS file per command.
-
-| Category | Platforms | Commands |
-|----------|-----------|----------|
-| **Search** | Google, Baidu, Bing, DuckDuckGo, Sogou WeChat | search |
-| **Social** | Twitter/X, Reddit, Weibo, Xiaohongshu, Jike, LinkedIn, Hupu | search, feed, thread, user, notifications, hot |
-| **News** | BBC, Reuters, 36kr, Toutiao, Eastmoney | headlines, search, newsflash, hot |
-| **Dev** | GitHub, StackOverflow, HackerNews, CSDN, cnblogs, V2EX, Dev.to, npm, PyPI, arXiv | search, issues, repo, top, thread, package |
-| **Video** | YouTube, Bilibili | search, video, transcript, popular, comments, feed |
-| **Entertainment** | Douban, IMDb, Genius, Qidian | movie, search, top250 |
-| **Finance** | Xueqiu, Eastmoney, Yahoo Finance | stock, hot stocks, feed, watchlist, search |
-| **Jobs** | BOSS Zhipin, LinkedIn | search, detail, profile |
-| **Knowledge** | Wikipedia, Zhihu, Open Library | search, summary, hot, question |
-| **Shopping** | SMZDM | search deals |
-| **Tools** | Youdao, GSMArena, Product Hunt, Ctrip | translate, phone specs, trending products |
-
-## 10 minutes to add any website
-
-```bash
-bb-browser guide    # full tutorial
-```
-
-Tell your AI agent: *"turn XX website into a CLI"*. It reads the guide, reverse-engineers the API with `network --with-body`, writes the adapter, tests it, and submits a PR. All autonomously.
-
-Three tiers of adapter complexity:
-
-| Tier | Auth method | Example | Time |
-|------|-------------|---------|------|
-| **1** | Cookie (fetch directly) | Reddit, GitHub, V2EX | ~1 min |
-| **2** | Bearer + CSRF token | Twitter, Zhihu | ~3 min |
-| **3** | Webpack injection / Pinia store | Twitter search, Xiaohongshu | ~10 min |
-
-We tested this: **20 AI agents ran in parallel, each independently reverse-engineered a website and produced a working adapter.** The marginal cost of adding a new website to the agent-accessible internet is approaching zero.
-
-## What this means for AI agents
-
-Without bb-browser, an AI agent's world is: **files + terminal + a few APIs with keys.**
-
-With bb-browser: **files + terminal + the entire internet.**
-
-An agent can now, in under a minute:
-
-```bash
-# Cross-platform research on any topic
-bb-browser site arxiv/search "retrieval augmented generation"
-bb-browser site twitter/search "RAG"
-bb-browser site github search rag-framework
-bb-browser site stackoverflow/search "RAG implementation"
-bb-browser site zhihu/search "RAG"
-bb-browser site 36kr/newsflash
-```
-
-Six platforms, six dimensions, structured JSON. Faster and broader than any human researcher.
-
-## Also a full browser automation tool
+### 浏览器操作
 
 ```bash
 bb-browser open https://example.com
-bb-browser snapshot -i                # accessibility tree
-bb-browser click @3                   # click element
-bb-browser fill @5 "hello"            # fill input
-bb-browser eval "document.title"      # run JS
-bb-browser fetch URL --json           # authenticated fetch
-bb-browser network requests --with-body --json  # capture traffic
-bb-browser screenshot                 # take screenshot
+bb-browser snapshot -i
+bb-browser click @3
+bb-browser fill @5 "hello"
+bb-browser type @5 " world"
+bb-browser press Enter
+bb-browser scroll down 800
+bb-browser screenshot
 ```
 
-All commands support `--json` output, `--jq <expr>` for inline filtering, and `--tab <id>` for concurrent multi-tab operations.
+### 页面调试与抓包
 
 ```bash
-bb-browser site xueqiu/hot-stock 5 --jq '.items[] | {name, changePercent}'
-# {"name":"云天化","changePercent":"2.08%"}
-# {"name":"东芯股份","changePercent":"-7.60%"}
-
-bb-browser site info xueqiu/stock   # view adapter args, example, domain
+bb-browser eval "document.title"
+bb-browser fetch https://example.com/api/me --json
+bb-browser network requests --with-body --json
+bb-browser console
+bb-browser errors
+bb-browser trace start
+bb-browser trace stop
 ```
 
-## Daemon configuration
-
-The daemon binds to `localhost:19824` by default. You can customize the host with `--host`:
+### 标签页与导航
 
 ```bash
-bb-browser daemon --host 127.0.0.1    # IPv4 only (fix macOS IPv6 issues)
-bb-browser daemon --host 0.0.0.0      # listen on all interfaces (for Tailscale / ZeroTier remote access)
+bb-browser tab list
+bb-browser tab new https://example.com
+bb-browser back
+bb-browser forward
+bb-browser refresh
+bb-browser status
 ```
 
-## Architecture
+所有命令都支持 `--json` 输出，很多命令支持 `--jq` 做结果过滤。
 
-```
-AI Agent (Claude Code, Codex, Cursor, etc.)
-       │ CLI or MCP (stdio)
-       ▼
-bb-browser CLI ──HTTP──▶ Daemon ──SSE──▶ Chrome Extension
-                                              │
-                                              ▼ chrome.debugger (CDP)
-                                         Your Real Browser
+## 站点命令
+
+`site` 是最适合 AI 使用的入口。它把网站能力封装成结构化命令，输出更稳定，也更适合自动化处理。
+
+常用流程如下：
+
+```bash
+bb-browser site update                  # 更新社区站点适配器
+bb-browser site recommend               # 基于浏览历史推荐可用适配器
+bb-browser site list                    # 查看全部适配器
+bb-browser site info xueqiu/stock       # 查看参数、示例、域名
+bb-browser site zhihu/hot               # 直接运行
 ```
 
-## License
+社区适配器仓库：
+
+- [bb-sites](https://github.com/epiral/bb-sites)
+
+## 油猴脚本开发流程
+
+如果你要让 AI 生成、调试和验证 userscript，可以使用专用的 MCP 服务：
+
+```bash
+bb-browser-userscript-mcp
+```
+
+推荐流程：
+
+1. 运行 `userscript_doctor` 检查浏览器、daemon、扩展和 `chrome.userScripts`
+2. 用 `userscript_generate_from_page` 或 `userscript_project_init` 初始化项目
+3. 用 `userscript_dev_run` 自动构建、安装、打开页面并收集日志
+4. 用 `userscript_regression_run` 进行回归验证
+5. 用 `userscript_export_tampermonkey` 或 `userscript_publish_local` 导出成品
+
+## Daemon 配置
+
+默认情况下，本地后台服务监听 `localhost:19824`。你也可以自定义监听地址：
+
+```bash
+bb-browser daemon --host 127.0.0.1    # 仅使用 IPv4
+bb-browser daemon --host 0.0.0.0      # 允许局域网或 Tailscale 场景访问
+```
+
+## 架构
+
+```text
+AI Agent（Codex、Claude Code、Cursor 等）
+        │
+        │ CLI 或 MCP
+        ▼
+bb-browser CLI ──HTTP──▶ Daemon ──SSE──▶ Chrome 扩展
+                                               │
+                                               ▼
+                                     chrome.debugger（CDP）
+                                               │
+                                               ▼
+                                          你的真实浏览器
+```
+
+## 隐私与安全
+
+这个项目默认在本机运行，核心通信链路是本地的：
+
+```text
+AI Agent ↔ CLI/MCP ↔ localhost:19824 ↔ Chrome 扩展
+```
+
+- 默认没有遥测、没有云端转发
+- 页面内容、抓包结果、Trace 记录主要保存在本地运行时内存中
+- 是否访问某个网站、是否执行某个命令，完全由你自己控制
+
+详细说明见：
+
+- [PRIVACY.md](PRIVACY.md)
+- [SECURITY.md](SECURITY.md)
+
+## 开发与贡献
+
+本地开发：
+
+```bash
+corepack pnpm install
+corepack pnpm lint
+corepack pnpm test
+corepack pnpm verify
+```
+
+贡献流程和仓库约定见：
+
+- [CONTRIBUTING.md](CONTRIBUTING.md)
+- [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md)
+
+## 许可证
 
 [MIT](LICENSE)

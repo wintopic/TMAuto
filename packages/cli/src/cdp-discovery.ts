@@ -1,14 +1,14 @@
-import { execFile, execSync, spawn } from "node:child_process";
+import { execFile, spawn } from "node:child_process";
 import { existsSync } from "node:fs";
 import { mkdir, readFile, writeFile } from "node:fs/promises";
-import os from "node:os";
 import path from "node:path";
-import { parseOpenClawJson } from "./openclaw-json.js";
+import { getRuntimePaths } from "@bb-browser/shared";
 
 const DEFAULT_CDP_PORT = 19825;
-const MANAGED_BROWSER_DIR = path.join(os.homedir(), ".bb-browser", "browser");
-const MANAGED_USER_DATA_DIR = path.join(MANAGED_BROWSER_DIR, "user-data");
-const MANAGED_PORT_FILE = path.join(MANAGED_BROWSER_DIR, "cdp-port");
+const RUNTIME_PATHS = getRuntimePaths();
+const MANAGED_BROWSER_DIR = RUNTIME_PATHS.managedBrowserDir;
+const MANAGED_USER_DATA_DIR = RUNTIME_PATHS.managedUserDataDir;
+const MANAGED_PORT_FILE = RUNTIME_PATHS.managedPortFile;
 
 function execFileAsync(command: string, args: string[], timeout: number): Promise<string> {
   return new Promise((resolve, reject) => {
@@ -31,7 +31,7 @@ function getArgValue(flag: string): string | undefined {
 async function tryOpenClaw(): Promise<{ host: string; port: number } | null> {
   try {
     const raw = await execFileAsync("npx", ["openclaw", "browser", "status", "--json"], 5000);
-    const parsed = parseOpenClawJson<{ cdpPort?: number | string }>(raw);
+    const parsed = JSON.parse(raw);
     const port = Number(parsed?.cdpPort);
     if (Number.isInteger(port) && port > 0) {
       return { host: "127.0.0.1", port };
@@ -54,6 +54,13 @@ async function canConnect(host: string, port: number): Promise<boolean> {
 }
 
 export function findBrowserExecutable(): string | null {
+  for (const envKey of ["BB_BROWSER_EXECUTABLE", "BB_BROWSER_PATH", "BROWSER"]) {
+    const candidate = process.env[envKey];
+    if (candidate && existsSync(candidate)) {
+      return candidate;
+    }
+  }
+
   if (process.platform === "darwin") {
     const candidates = [
       "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome",
@@ -64,38 +71,50 @@ export function findBrowserExecutable(): string | null {
       "/Applications/Microsoft Edge.app/Contents/MacOS/Microsoft Edge",
       "/Applications/Brave Browser.app/Contents/MacOS/Brave Browser",
     ];
-    return candidates.find((candidate) => existsSync(candidate)) ?? null;
+    const knownPathMatch = candidates.find((candidate) => existsSync(candidate));
+    if (knownPathMatch) return knownPathMatch;
+    return findBrowserExecutableOnPath(["google-chrome", "microsoft-edge", "brave-browser", "chromium"]);
   }
 
   if (process.platform === "linux") {
-    const candidates = ["google-chrome", "google-chrome-stable", "chromium-browser", "chromium"];
-    for (const candidate of candidates) {
-      try {
-        const resolved = execSync(`which ${candidate}`, { encoding: "utf8", stdio: ["ignore", "pipe", "ignore"] }).trim();
-        if (resolved) {
-          return resolved;
-        }
-      } catch {
-      }
-    }
-    return null;
+    return findBrowserExecutableOnPath([
+      "google-chrome",
+      "google-chrome-stable",
+      "microsoft-edge",
+      "brave-browser",
+      "chromium-browser",
+      "chromium",
+    ]);
   }
 
   if (process.platform === "win32") {
-    const localAppData = process.env.LOCALAPPDATA ?? "";
     const candidates = [
       "C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe",
       "C:\\Program Files (x86)\\Google\\Chrome\\Application\\chrome.exe",
-      ...(localAppData ? [
-        `${localAppData}\\Google\\Chrome Dev\\Application\\chrome.exe`,
-        `${localAppData}\\Google\\Chrome SxS\\Application\\chrome.exe`,
-        `${localAppData}\\Google\\Chrome Beta\\Application\\chrome.exe`,
-      ] : []),
-      "C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe",
       "C:\\Program Files\\Microsoft\\Edge\\Application\\msedge.exe",
+      "C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe",
       "C:\\Program Files\\BraveSoftware\\Brave-Browser\\Application\\brave.exe",
+      "C:\\Program Files (x86)\\BraveSoftware\\Brave-Browser\\Application\\brave.exe",
     ];
-    return candidates.find((candidate) => existsSync(candidate)) ?? null;
+    const knownPathMatch = candidates.find((candidate) => existsSync(candidate));
+    if (knownPathMatch) return knownPathMatch;
+    return findBrowserExecutableOnPath(["chrome.exe", "msedge.exe", "brave.exe", "chromium.exe"]);
+  }
+
+  return null;
+}
+
+function findBrowserExecutableOnPath(executables: string[]): string | null {
+  const rawPath = process.env.PATH || "";
+  if (!rawPath) return null;
+
+  for (const entry of rawPath.split(path.delimiter).filter(Boolean)) {
+    for (const executable of executables) {
+      const candidate = path.join(entry, executable);
+      if (existsSync(candidate)) {
+        return candidate;
+      }
+    }
   }
 
   return null;

@@ -7,7 +7,6 @@
  *   bb-browser trace status  查看录制状态
  */
 
-import { generateId } from "@bb-browser/shared";
 import { sendCommand } from "../client.js";
 
 interface TraceOptions {
@@ -20,7 +19,7 @@ export async function traceCommand(
   options: TraceOptions = {}
 ): Promise<void> {
   const response = await sendCommand({
-    id: generateId(),
+    id: crypto.randomUUID(),
     action: "trace",
     traceCommand: subCommand,
     tabId: options.tabId,

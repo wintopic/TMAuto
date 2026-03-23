@@ -6,7 +6,7 @@
   "scripts": {
     "build": "tsup",
     "dev": "tsup --watch",
-    "lint": "eslint src tsup.config.ts"
+    "lint": "pnpm exec tsc --noEmit -p tsconfig.json"
   },
   "dependencies": {
     "@bb-browser/shared": "workspace:*",

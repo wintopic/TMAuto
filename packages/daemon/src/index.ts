@@ -11,11 +11,12 @@
  */
 
 import { parseArgs } from "node:util";
-import { writeFileSync, unlinkSync, existsSync } from "node:fs";
-import { DAEMON_PORT, DAEMON_HOST } from "@bb-browser/shared";
+import { mkdirSync, writeFileSync, unlinkSync, existsSync } from "node:fs";
+import path from "node:path";
+import { DAEMON_PORT, DAEMON_HOST, getRuntimePaths } from "@bb-browser/shared";
 import { HttpServer } from "./http-server.js";
 
-const PID_FILE_PATH = "/tmp/bb-browser.pid";
+const PID_FILE_PATH = getRuntimePaths().pidFilePath;
 
 interface DaemonOptions {
   host: string;
@@ -78,6 +79,7 @@ Endpoints:
  * 写入 PID 文件
  */
 function writePidFile(): void {
+  mkdirSync(path.dirname(PID_FILE_PATH), { recursive: true });
   writeFileSync(PID_FILE_PATH, String(process.pid), "utf-8");
 }
 

@@ -47,9 +47,9 @@ bb-browser does not share any data with third parties. The extension communicate
 ## Open source
 
 bb-browser is fully open source. You can audit the code at:
-https://github.com/epiral/bb-browser
+https://github.com/wintopic/TMAuto
 
 ## Contact
 
 For privacy questions, open an issue at:
-https://github.com/epiral/bb-browser/issues
+https://github.com/wintopic/TMAuto/issues

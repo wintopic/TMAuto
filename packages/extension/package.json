@@ -5,10 +5,15 @@
   "type": "module",
   "scripts": {
     "dev": "vite build --watch --mode development",
-    "build": "vite build"
+    "build": "vite build",
+    "lint": "pnpm exec tsc --noEmit -p tsconfig.json"
+  },
+  "dependencies": {
+    "@bb-browser/shared": "workspace:*"
   },
   "devDependencies": {
     "@types/chrome": "^0.0.287",
+    "@types/node": "^22.0.0",
     "typescript": "^5.7.3",
     "vite": "^6.1.0",
     "vite-plugin-static-copy": "^2.2.0"

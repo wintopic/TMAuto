@@ -3,6 +3,7 @@
  * 使用 fetch + ReadableStream 实现，兼容 Service Worker (Manifest V3)
  */
 
+import type { Request } from "@bb-browser/shared";
 import { getUpstreamUrl, SSE_RECONNECT_DELAY, SSE_MAX_RECONNECT_ATTEMPTS } from './constants';
 
 export interface SSEEvent {
@@ -10,9 +11,7 @@ export interface SSEEvent {
   data: unknown;
 }
 
-export interface CommandEvent {
-  id: string;
-  action: string;
+export interface CommandEvent extends Request {
   [key: string]: unknown;
 }
 
