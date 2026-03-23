@@ -1,118 +1,79 @@
 <div align="center">
 
-# TMAuto
+# TampermonkeyAuto
 
-### 让 AI 直接使用你已经登录的真实浏览器
+### 让 AI 自动编写、安装、调试和回归验证篡改猴脚本
 
-**你的浏览器就是接口，不需要密钥，不需要爬虫，不需要模拟登录。**
+**面向 AI 代理的 userscript 工作台，而不只是一个通用浏览器自动化壳子。**
 
-[![npm 版本](https://img.shields.io/npm/v/bb-browser?color=CB3837&logo=npm&logoColor=white)](https://www.npmjs.com/package/bb-browser)
 [![构建状态](https://github.com/wintopic/TMAuto/actions/workflows/ci.yml/badge.svg)](https://github.com/wintopic/TMAuto/actions/workflows/ci.yml)
 [![Node.js 版本](https://img.shields.io/badge/Node.js-18+-339933?logo=node.js&logoColor=white)](https://nodejs.org)
 [![许可证](https://img.shields.io/badge/许可证-MIT-blue.svg)](LICENSE)
 [![GitHub Stars](https://img.shields.io/github/stars/wintopic/TMAuto?style=social)](https://github.com/wintopic/TMAuto/stargazers)
 
-[快速开始](#快速开始) · [使用方式选择](#使用方式选择) · [常用命令](#常用命令) · [项目结构](#项目结构) · [隐私与安全](#隐私与安全) · [开发与贡献](#开发与贡献)
+[项目定位](#项目定位) · [快速开始](#快速开始) · [典型工作流](#典型工作流) · [核心工具](#核心工具) · [仓库结构](#仓库结构) · [命名说明](#命名说明)
 
 </div>
 
 ---
 
-> `TMAuto` 基于 `bb-browser` 整理，把本地 `CLI`、`MCP` 服务、本地后台服务和 Chrome 扩展串成一条完整链路，让 AI 在你的授权范围内直接读取页面、操作界面、抓取结果并执行自动化流程。
+## 项目定位
 
-如果网页已经在你的浏览器里正常打开，`TMAuto` 就会尽量复用这份真实运行环境，而不是重新造一个脱离登录态的无头环境。你不需要额外申请网站 `API`，不需要导出 `Cookie`，也不需要重新搭一套模拟登录流程。
+`TampermonkeyAuto` 的目标很明确：
 
-## 为什么用它
+- 让 AI 根据页面上下文和任务描述生成篡改猴脚本
+- 让 AI 自动完成脚本工程初始化、构建、安装、更新和卸载
+- 让 AI 在真实浏览器里调试脚本，读取日志、存储、网络请求和页面报错
+- 让 AI 把脚本导出为可安装的 `.user.js`，并做回归验证
 
-- 已登录场景可以直接复用浏览器状态，不必重复处理登录流
-- 不依赖站点公开 `API`，也不要求手动导出 `Cookie`
-- 同时适合人直接在命令行使用，也适合接给 AI 代理和支持 `MCP` 的工具
-- 既能做结构化站点查询，也能做真实浏览器自动化和 `userscript` 开发
+这个仓库不是把“浏览器自动化”当成终点，而是把它作为 `userscript` 开发的底层基础设施。核心入口是 `userscript-mcp`，核心产物是 Tampermonkey 兼容脚本。
 
-## 它能做什么
+## 它解决什么问题
 
-- 直接读取你已登录网站里的页面、接口和数据
-- 让 AI 在真实浏览器里点击、输入、截图、抓包、执行脚本
-- 通过 `site` 命令把网站能力包装成结构化接口
-- 通过 `userscript-mcp` 做油猴脚本的生成、调试、回归和导出
+传统的油猴脚本开发通常会卡在这些环节：
 
-例如：
+- AI 只能写代码，不能真正装进浏览器验证
+- 页面状态、登录态、脚本日志、报错和网络请求分散在不同地方
+- 每次调试都要手工刷新、手工安装、手工看控制台
+- 脚本跑通之后，很难稳定复现和做回归检查
 
-```bash
-bb-browser site twitter/search "AI agent"       # 搜索推文
-bb-browser site zhihu/hot                        # 查看知乎热榜
-bb-browser site arxiv/search "transformer"       # 搜索论文
-bb-browser site eastmoney/stock "茅台"            # 查看实时股票行情
-bb-browser site boss/search "AI 工程师"           # 搜索职位
-bb-browser site wikipedia/summary "Python"       # 获取词条摘要
-bb-browser site youtube/transcript VIDEO_ID      # 获取视频字幕全文
-bb-browser site stackoverflow/search "async"     # 搜索技术问答
-```
+`TampermonkeyAuto` 把这几件事串成一条 AI 可调用的工作流：先诊断环境，再生成脚本，再安装到真实浏览器运行，再收集调试信息，最后导出和回归。
 
-目前已经支持 **36 个平台、103 个命令**，完整站点能力列表见 [bb-sites](https://github.com/epiral/bb-sites)。
+## 核心能力
 
-## 适合这些场景
-
-- 读取知乎、雪球、招聘站、知识库、论文站等已登录或强交互页面数据
-- 让 AI 辅助完成后台录入、运营操作、信息核对、页面巡检
-- 把高频网页能力封装成稳定命令，再交给 Codex、Claude Code、Cursor 等工具调用
-- 生成和调试 Tampermonkey 脚本，把一次性网页操作沉淀成可复用自动化
-
-## 和常见方案有什么不同
-
-传统自动化方案通常会遇到两个问题：
-
-- 无头浏览器没有你的真实登录态，很多网站要重新登录
-- 抓取方案容易被风控、验证码、接口签名和页面框架细节卡住
-
-`TMAuto` 的思路不是让网站额外开放接口，而是让 AI 直接使用人的界面和浏览器运行环境。网页看到的就是你自己，所以很多原本很难自动化的已登录场景会简单很多。
-
-| 对比项 | 常见自动化 / 爬取 | TMAuto |
-| --- | --- | --- |
-| 浏览器环境 | 独立、无状态 | 你的真实浏览器 |
-| 登录态 | 需要重登或手动注入 | 直接复用 |
-| 风控识别 | 容易触发 | 更贴近真实用户 |
-| 网页内部能力 | 常常需要自己逆向 | 可以直接调用页面环境 |
-| 接入方式 | 脚本分散、流程割裂 | `CLI`、`MCP`、扩展、`daemon` 一体化 |
+- 诊断浏览器、扩展、`daemon` 和 `chrome.userScripts` 是否可用
+- 根据页面 URL 和任务意图生成脚本草稿或完整工程骨架
+- 自动构建 `dist/*.user.js`
+- 自动安装或更新脚本到浏览器开发运行时
+- 自动收集脚本日志、`GM_*` 存储、网络请求和页面错误
+- 自动导出 Tampermonkey 兼容脚本
+- 自动执行回归场景，判断脚本是否继续正常工作
 
 ## 快速开始
 
 ### 环境要求
 
 - `Node.js 18+`
-- Chrome 或兼容 `chrome.debugger` 的 Chromium 内核浏览器
-- 如果要参与仓库开发，建议启用 `corepack` 并使用 `pnpm`
+- Chrome 或兼容 `chrome.userScripts` / `chrome.debugger` 的 Chromium 内核浏览器
+- 已加载本仓库提供的扩展
+- 本地可启动 `daemon`
 
 ### 安装
+
+当前发布包和命令名仍沿用既有实现，因此安装命令还是：
 
 ```bash
 npm install -g bb-browser
 ```
 
-安装后可以先运行下面三条命令确认环境正常：
+安装后，和 `userscript` 工作流最相关的入口是：
 
 ```bash
-bb-browser site update
-bb-browser site recommend
-bb-browser site zhihu/hot
+bb-browser-daemon
+bb-browser-userscript-mcp
 ```
 
-## 使用方式选择
-
-如果你只想尽快体验站点能力，优先使用 `site` 命令；如果你要做本机浏览器自动化，使用 Chrome 扩展加 `daemon`；如果你要接入支持 `MCP` 的 AI 工具，使用 `MCP` 服务入口。
-
-### 方式一：通过 OpenClaw 使用
-
-如果你在使用 [OpenClaw](https://openclaw.ai)，可以直接复用 OpenClaw 内置浏览器，不需要额外安装扩展和后台服务：
-
-```bash
-bb-browser site reddit/hot --openclaw
-bb-browser site xueqiu/hot-stock 5 --openclaw --jq '.items[] | {name, changePercent}'
-```
-
-### 方式二：通过 Chrome 扩展和后台服务使用
-
-如果你要在本地命令行、Codex、Claude Code、Cursor 等环境里使用，请按下面步骤准备：
+### 浏览器准备
 
 1. 从 [Releases](https://github.com/wintopic/TMAuto/releases/latest) 下载扩展压缩包
 2. 解压后打开 `chrome://extensions/`
@@ -122,160 +83,186 @@ bb-browser site xueqiu/hot-stock 5 --openclaw --jq '.items[] | {name, changePerc
 6. 启动本地后台服务
 
 ```bash
-bb-browser daemon
-```
-
-也可以直接启动独立入口：
-
-```bash
 bb-browser-daemon
 ```
 
-### 方式三：通过 MCP 接入 AI 工具
+### 接入 AI 工具
 
-如果你要把它接到支持 `MCP` 的工具里，可以使用下面的配置：
+如果你的 AI 工具支持 `MCP`，推荐直接接入 `userscript-mcp`：
 
 ```json
 {
   "mcpServers": {
-    "bb-browser": {
-      "command": "npx",
-      "args": ["-y", "bb-browser", "--mcp"]
+    "tampermonkey-auto": {
+      "command": "bb-browser-userscript-mcp"
     }
   }
 }
 ```
 
-如果你要让 AI 专门生成和调试油猴脚本，还可以使用独立入口：
+## 典型工作流
 
-```bash
-bb-browser-userscript-mcp
+把它理解成“AI 写脚本 + AI 调试脚本 + AI 验证脚本”的流水线会更准确。
+
+### 1. 先跑环境诊断
+
+AI 先调用：
+
+- `userscript_doctor`
+
+它会检查浏览器是否可用、扩展是否连通、`chrome.userScripts` 是否可用、`daemon` 是否在线，以及项目目录是否已经准备好。
+
+### 2. 创建脚本项目
+
+有两种常见方式：
+
+- `userscript_project_init`
+  适合你已经知道脚本名称、匹配规则和基础权限
+- `userscript_generate_from_page`
+  适合直接给 AI 一个页面 URL 和任务目标，让它先生成草稿
+
+生成后的项目结构大致如下：
+
+```text
+your-script/
+  meta.json
+  src/
+    main.ts
+  scenarios/
+    smoke.json
+  dist/
+    your-script.user.js
 ```
 
-## 常用命令
+### 3. 构建并在真实浏览器里调试
 
-### 浏览器操作
+核心工具是：
 
-```bash
-bb-browser open https://example.com
-bb-browser snapshot -i
-bb-browser click @3
-bb-browser fill @5 "hello"
-bb-browser type @5 " world"
-bb-browser press Enter
-bb-browser scroll down 800
-bb-browser screenshot
-```
+- `userscript_build`
+- `userscript_dev_install`
+- `userscript_dev_update`
+- `userscript_dev_run`
 
-### 页面调试与抓包
+其中 `userscript_dev_run` 最适合作为 AI 的默认调试入口，因为它会一次性完成：
 
-```bash
-bb-browser eval "document.title"
-bb-browser fetch https://example.com/api/me --json
-bb-browser network requests --with-body --json
-bb-browser console
-bb-browser errors
-bb-browser trace start
-bb-browser trace stop
-```
+1. 构建脚本
+2. 安装或更新脚本
+3. 打开目标页面
+4. 等待脚本执行
+5. 回收调试信息
 
-### 标签页与导航
+### 4. 查看脚本运行结果
 
-```bash
-bb-browser tab list
-bb-browser tab new https://example.com
-bb-browser back
-bb-browser forward
-bb-browser refresh
-bb-browser status
-```
+AI 可以继续调用：
 
-所有命令都支持 `--json` 输出，很多命令支持 `--jq` 做结果过滤。
+- `userscript_logs`
+- `userscript_storage`
+- 浏览器侧的网络、页面报错和交互调试能力
 
-## 站点命令
+这样脚本有没有运行、写入了哪些 `GM_*` 数据、打到了哪些接口、页面有没有异常，都可以直接拿到结构化结果。
 
-`site` 是最适合 AI 使用的入口。它把网站能力封装成结构化命令，输出更稳定，也更适合自动化处理。
+### 5. 导出和发布
 
-常用流程如下：
+脚本跑通后，可以使用：
 
-```bash
-bb-browser site update                  # 更新社区站点适配器
-bb-browser site recommend               # 基于浏览历史推荐可用适配器
-bb-browser site list                    # 查看全部适配器
-bb-browser site info xueqiu/stock       # 查看参数、示例、域名
-bb-browser site zhihu/hot               # 直接运行
-```
+- `userscript_export_tampermonkey`
+- `userscript_publish_local`
 
-相关资源：
+前者产出标准的 `.user.js` 文件，后者会把脚本发布到本地地址，方便安装和更新。
 
-- 社区适配器仓库：[bb-sites](https://github.com/epiral/bb-sites)
-- 仓库主页：[wintopic/TMAuto](https://github.com/wintopic/TMAuto)
+### 6. 做回归验证
 
-## 油猴脚本开发流程
+最后再跑：
 
-如果你要让 AI 生成、调试和验证 `userscript`，可以使用专用的 `MCP` 服务：
+- `userscript_regression_run`
 
-```bash
-bb-browser-userscript-mcp
-```
+它会根据场景文件重新执行步骤和断言，帮助 AI 判断这次修改有没有把原来的功能改坏。
 
-推荐流程：
+## 核心工具
 
-1. 运行 `userscript_doctor` 检查浏览器、`daemon`、扩展和 `chrome.userScripts`
-2. 用 `userscript_generate_from_page` 或 `userscript_project_init` 初始化项目
-3. 用 `userscript_dev_run` 自动构建、安装、打开页面并收集日志
-4. 用 `userscript_regression_run` 进行回归验证
-5. 用 `userscript_export_tampermonkey` 或 `userscript_publish_local` 导出成品
+下面这些工具是这个项目最关键的对外能力：
 
-## Daemon 配置
+| 工具名 | 作用 |
+| --- | --- |
+| `userscript_doctor` | 诊断本机和项目环境是否可用于脚本开发 |
+| `userscript_project_status` | 检查项目状态并给出下一步建议 |
+| `userscript_project_init` | 初始化一个 userscript 工程 |
+| `userscript_generate_from_page` | 基于页面和目标生成脚本草稿 |
+| `userscript_build` | 构建 `.user.js` 成品 |
+| `userscript_dev_install` | 将脚本安装到开发运行时 |
+| `userscript_dev_update` | 更新开发运行时中的脚本 |
+| `userscript_dev_run` | 构建、安装、打开页面并回收调试信息 |
+| `userscript_logs` | 读取脚本日志 |
+| `userscript_storage` | 读取 `GM_*` 存储数据 |
+| `userscript_export_tampermonkey` | 导出 Tampermonkey 兼容脚本 |
+| `userscript_publish_local` | 本地发布 `.user.js` 安装地址 |
+| `userscript_regression_run` | 执行脚本回归测试 |
 
-默认情况下，本地后台服务监听 `localhost:19824`。你也可以自定义监听地址：
+## 底层能力
 
-```bash
-bb-browser daemon --host 127.0.0.1    # 仅使用 IPv4
-bb-browser daemon --host 0.0.0.0      # 允许局域网或 Tailscale 场景访问
-```
+虽然项目主目标是 `userscript` 自动化，但底层仍保留了一整套真实浏览器控制能力，方便 AI 在写脚本时辅助调试页面：
 
-## 项目结构
+- 打开页面、切换标签页、读取快照
+- 点击、输入、选择、滚动
+- 抓取网络请求
+- 读取控制台日志和页面错误
+- 运行页面脚本和断言
+
+这些能力的作用是服务于脚本开发，不是 README 的主叙事中心。
+
+## 仓库结构
 
 | 路径 | 说明 |
 | --- | --- |
-| `packages/cli` | 命令行入口，负责命令解析、输出和本地调用体验 |
-| `packages/daemon` | 本地后台服务，负责 `HTTP` 请求与 `SSE` 通信 |
-| `packages/extension` | Chrome 扩展，负责接管真实浏览器并通过 `CDP` 执行操作 |
-| `packages/mcp` | 通用 `MCP` 服务入口，便于 AI 工具直接接入 |
-| `packages/userscript-mcp` | 面向油猴脚本工作流的专用 `MCP` 服务 |
-| `packages/shared` | 共享协议、类型定义和运行时公共逻辑 |
-| `docs/` | 设计文档、方案草稿和实现记录 |
-| `skills/` | 配套技能说明和工作流文档 |
+| `packages/userscript-mcp` | 面向 AI 的 userscript 高层工作流入口，也是本项目最核心的包 |
+| `packages/extension` | 浏览器扩展，负责真实脚本运行时、日志、存储和安装同步 |
+| `packages/daemon` | 本地后台服务，负责扩展与本机工具之间的通信 |
+| `packages/mcp` | 通用浏览器控制 MCP，用于页面调试和补充操作 |
+| `packages/cli` | 本地命令行能力 |
+| `packages/shared` | userscript 元数据、协议、状态模型和公共工具 |
+| `docs/` | 设计说明、工作流方案和实现文档 |
 
 ## 架构
 
 ```text
-AI 代理（Codex、Claude Code、Cursor 等）
-        │
-        │ CLI 或 MCP
-        ▼
-bb-browser CLI ──HTTP──▶ Daemon ──SSE──▶ Chrome 扩展
-                                               │
-                                               ▼
-                                     chrome.debugger（CDP）
-                                               │
-                                               ▼
-                                          你的真实浏览器
+AI 工具
+  │
+  │ MCP
+  ▼
+userscript-mcp
+  │
+  │ 调用本地浏览器能力
+  ▼
+CLI / daemon / Chrome 扩展
+  │
+  ▼
+chrome.userScripts + chrome.debugger
+  │
+  ▼
+真实浏览器页面
 ```
+
+## 命名说明
+
+这里需要明确说明一件事，避免继续让人误解：
+
+- 这个仓库现在对外定位是 `TampermonkeyAuto`
+- 但当前实现是基于 `bb-browser` 演进出来的
+- 因此内部包名、命令名、部分目录名仍保留了 `bb-browser` 前缀
+
+这代表的是实现历史，不代表项目定位。对外描述、README 和开源展示应以“AI 自动化编写篡改猴脚本”这件事为中心。
 
 ## 隐私与安全
 
-这个项目默认在本机运行，核心通信链路是本地的：
+这个项目默认在本机运行，核心链路是本地通信：
 
 ```text
-AI 代理 ↔ CLI/MCP ↔ localhost:19824 ↔ Chrome 扩展
+AI 工具 ↔ MCP / CLI ↔ localhost ↔ Chrome 扩展 ↔ 真实浏览器
 ```
 
 - 默认没有遥测，也没有云端转发
-- 页面内容、抓包结果、`trace` 记录主要保存在本地运行时内存中
-- 是否访问某个网站、是否执行某个命令，完全由你自己控制
+- 脚本日志、页面调试信息和运行态数据优先保留在本地
+- 是否访问页面、安装脚本、执行调试，完全由你自己控制
 
 详细说明见：
 
