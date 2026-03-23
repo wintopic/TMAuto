@@ -1,7 +1,7 @@
 {
   "name": "bb-browser",
   "version": "0.8.3",
-  "description": "面向 AI 的 Tampermonkey/Userscript 自动化开发工作台，支持脚本生成、安装、调试、回归和导出。",
+  "description": "TMAuto：面向 AI 的 Tampermonkey/Userscript 自动化开发工作台，支持脚本生成、安装、调试、回归和导出。",
   "type": "module",
   "bin": {
     "bb-browser": "./dist/cli.js",
@@ -28,6 +28,7 @@
     "prepublishOnly": "pnpm build:release"
   },
   "keywords": [
+    "tmauto",
     "tampermonkey",
     "userscript",
     "greasemonkey",

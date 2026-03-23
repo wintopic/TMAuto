@@ -1,6 +1,6 @@
 <div align="center">
 
-# TampermonkeyAuto
+# TMAuto
 
 ### 让 AI 自动编写、安装、调试和回归验证篡改猴脚本
 
@@ -19,7 +19,7 @@
 
 ## 项目定位
 
-`TampermonkeyAuto` 的目标很明确：
+`TMAuto` 的目标很明确：
 
 - 让 AI 根据页面上下文和任务描述生成篡改猴脚本
 - 让 AI 自动完成脚本工程初始化、构建、安装、更新和卸载
@@ -37,7 +37,7 @@
 - 每次调试都要手工刷新、手工安装、手工看控制台
 - 脚本跑通之后，很难稳定复现和做回归检查
 
-`TampermonkeyAuto` 把这几件事串成一条 AI 可调用的工作流：先诊断环境，再生成脚本，再安装到真实浏览器运行，再收集调试信息，最后导出和回归。
+`TMAuto` 把这几件事串成一条 AI 可调用的工作流：先诊断环境，再生成脚本，再安装到真实浏览器运行，再收集调试信息，最后导出和回归。
 
 ## 核心能力
 
@@ -93,7 +93,7 @@ bb-browser-daemon
 ```json
 {
   "mcpServers": {
-    "tampermonkey-auto": {
+    "tmauto": {
       "command": "bb-browser-userscript-mcp"
     }
   }
@@ -246,7 +246,7 @@ chrome.userScripts + chrome.debugger
 
 这里需要明确说明一件事，避免继续让人误解：
 
-- 这个仓库现在对外定位是 `TampermonkeyAuto`
+- 这个仓库现在对外定位是 `TMAuto`
 - 但当前实现是基于 `bb-browser` 演进出来的
 - 因此内部包名、命令名、部分目录名仍保留了 `bb-browser` 前缀
 
